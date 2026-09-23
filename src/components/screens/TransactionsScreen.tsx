@@ -31,9 +31,6 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'expense' | 'income' | 'transfer'>('all');
-  const [accountFilter, setAccountFilter] = useState('all');
-
-  const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((tx) => {
@@ -46,24 +43,17 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
         }
       }
 
-      // Account filter
-      if (accountFilter !== 'all') {
-        if (tx.accountId !== accountFilter && tx.toAccountId !== accountFilter) return false;
-      }
-
       // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const matchNotes = tx.notes?.toLowerCase().includes(q);
         const matchCategory = tx.category?.toLowerCase().includes(q);
-        const matchTags = tx.tags?.some((t) => t.toLowerCase().includes(q));
-        const matchAccount = accountMap.get(tx.accountId)?.toLowerCase().includes(q);
-        if (!matchNotes && !matchCategory && !matchTags && !matchAccount) return false;
+        const matchSubcategory = tx.subcategory?.toLowerCase().includes(q);
+        if (!matchCategory && !matchSubcategory) return false;
       }
 
       return true;
     });
-  }, [transactions, typeFilter, accountFilter, searchQuery, accountMap]);
+  }, [transactions, typeFilter, searchQuery]);
 
   // Group transactions by date
   const groupedByDate = useMemo(() => {
@@ -120,7 +110,7 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
         <Search className="w-4 h-4 text-pearl-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           type="text"
-          placeholder="Search notes, categories, tags, merchants..."
+          placeholder="Search by category..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full bg-navy-900 border border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-pearl-100 placeholder-pearl-400 focus:outline-none focus:border-gold-500/50 transition-colors"
@@ -129,7 +119,7 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
 
       {/* Filter Chips */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
-        {(['all', 'expense', 'income', 'transfer'] as const).map((filter) => (
+        {(['all', 'expense', 'income'] as const).map((filter) => (
           <button
             key={filter}
             onClick={() => setTypeFilter(filter)}
@@ -142,20 +132,6 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
             {filter === 'all' ? 'All Transactions' : `${filter}s`}
           </button>
         ))}
-
-        {/* Account Filter Select */}
-        <select
-          value={accountFilter}
-          onChange={(e) => setAccountFilter(e.target.value)}
-          className="bg-navy-900 border border-white/10 text-pearl-300 text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-gold-500 shrink-0"
-        >
-          <option value="all">All Accounts</option>
-          {accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
       </div>
 
       {/* Ledger Totals Ticker */}
@@ -232,21 +208,18 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
 
                         <div>
                           <div className="font-semibold text-pearl-100 text-sm">
-                            {tx.notes || tx.category}
+                            {tx.category}
                           </div>
                           <div className="text-[11px] text-pearl-400 flex items-center gap-1.5">
-                            <span className="text-pearl-300">
-                              {accountMap.get(tx.accountId) || 'Account'}
-                            </span>
-                            {tx.toAccountId && (
-                              <span>➔ {accountMap.get(tx.toAccountId) || 'Target'}</span>
+                            {tx.subcategory && (
+                              <>
+                                <span>{tx.subcategory}</span>
+                                <span>•</span>
+                              </>
                             )}
-                            <span>•</span>
-                            <span>{tx.category}</span>
-                            {tx.tags && tx.tags.length > 0 && (
-                              <span className="text-[10px] text-gold-400">
-                                #{tx.tags[0]}
-                              </span>
+                            <span>{tx.date}</span>
+                            {tx.isAutoPosted && (
+                              <span className="text-[10px] text-gold-400 bg-gold-500/10 px-1 rounded">Auto</span>
                             )}
                           </div>
                         </div>

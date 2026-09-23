@@ -103,36 +103,9 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
           )}
 
           <div className="p-3 flex items-center justify-between">
-            <span className="text-pearl-400">{isTransfer ? 'Origin Account' : 'Account'}</span>
-            <span className="font-semibold text-pearl-100">{srcAccount?.name || 'Account'}</span>
+            <span className="text-pearl-400">Date</span>
+            <span className="font-semibold text-pearl-100">{transaction.date}</span>
           </div>
-
-          {destAccount && (
-            <div className="p-3 flex items-center justify-between">
-              <span className="text-pearl-400">Destination Account</span>
-              <span className="font-semibold text-pearl-100">{destAccount.name}</span>
-            </div>
-          )}
-
-          {transaction.notes && (
-            <div className="p-3 flex flex-col gap-1">
-              <span className="text-pearl-400">Notes / Merchant</span>
-              <span className="text-pearl-200 text-sm font-medium">{transaction.notes}</span>
-            </div>
-          )}
-
-          {transaction.tags && transaction.tags.length > 0 && (
-            <div className="p-3 flex items-center justify-between">
-              <span className="text-pearl-400">Tags</span>
-              <div className="flex flex-wrap gap-1">
-                {transaction.tags.map((t) => (
-                  <span key={t} className="px-2 py-0.5 rounded-full bg-navy-700 text-gold-300 text-[11px]">
-                    #{t}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
 
           {transaction.isAutoPosted && (
             <div className="p-3 flex items-center justify-between">

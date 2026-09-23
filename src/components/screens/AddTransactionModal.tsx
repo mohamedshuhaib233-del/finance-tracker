@@ -37,14 +37,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [type, setType] = useState<TransactionType>(defaultType);
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<CurrencyCode>(defaultCurrency);
-  const [accountId, setAccountId] = useState(accounts[0]?.id || '');
-  const [toAccountId, setToAccountId] = useState('');
   const [category, setCategory] = useState('');
   const [subcategory, setSubcategory] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [notes, setNotes] = useState('');
-  const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
   const [isRecurring, setIsRecurring] = useState(false);
   const [receiptUploaded, setReceiptUploaded] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
@@ -60,33 +55,15 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     }
   }, [defaultType, isOpen]);
 
-  useEffect(() => {
-    if (accounts.length > 0 && !accountId) {
-      setAccountId(accounts[0].id);
-    }
-  }, [accounts, accountId]);
-
   const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   const currentCategoryObj = EXPENSE_CATEGORIES.find((c) => c.name === category);
-
-  const handleAddTag = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault();
-      if (!tags.includes(tagInput.trim())) {
-        setTags([...tags, tagInput.trim()]);
-      }
-      setTagInput('');
-    }
-  };
-
-  const handleRemoveTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsedAmount = parseFloat(amount);
     if (!parsedAmount || parsedAmount <= 0) return;
+
+    const defaultAccountId = accounts[0]?.id || 'acc_primary';
 
     setIsSubmitting(true);
     try {
@@ -94,21 +71,16 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
         type,
         amount: parsedAmount,
         currency,
-        accountId,
-        toAccountId: (type === 'transfer' || type === 'credit_card_payment') ? toAccountId : undefined,
+        accountId: defaultAccountId,
         category: showCustomCategory && customCategory ? customCategory : category,
         subcategory: subcategory || undefined,
         date,
-        notes: notes || undefined,
-        tags: tags.length > 0 ? tags : undefined,
         receiptUrl: receiptUploaded ? 'mock-receipt-proof-hash' : undefined,
         isRecurring,
       });
 
       // Reset form & close
       setAmount('');
-      setNotes('');
-      setTags([]);
       setReceiptUploaded(false);
       onClose();
     } catch (err) {
@@ -179,24 +151,6 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               autoFocus
             />
           </div>
-        </div>
-
-        {/* Source Account Picker */}
-        <div>
-          <label className="block text-xs font-semibold text-pearl-400 uppercase tracking-wider mb-1.5">
-            {type === 'income' ? 'Deposit Into Account *' : 'Payment Account *'}
-          </label>
-          <select
-            value={accountId}
-            onChange={(e) => setAccountId(e.target.value)}
-            className="w-full bg-navy-800/90 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-pearl-100 focus:outline-none focus:border-gold-500 transition-colors"
-          >
-            {accounts.map((acc) => (
-              <option key={acc.id} value={acc.id}>
-                {acc.name} ({acc.type.toUpperCase()}) — Balance: ₹{acc.currentBalance.toLocaleString('en-IN')}
-              </option>
-            ))}
-          </select>
         </div>
 
         {/* Category Selector with Custom Category option */}
@@ -274,47 +228,6 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               className="w-full bg-navy-800/90 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-pearl-100 focus:outline-none focus:border-gold-500"
             />
           </div>
-        </div>
-
-        {/* Notes & Description */}
-        <div>
-          <label className="block text-xs font-semibold text-pearl-400 uppercase tracking-wider mb-1.5">
-            Notes / Merchant
-          </label>
-          <input
-            type="text"
-            placeholder="e.g. Swiggy lunch, Zara jacket, Client retainer"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="w-full bg-navy-800/90 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-pearl-100 focus:outline-none focus:border-gold-500"
-          />
-        </div>
-
-        {/* Tags */}
-        <div>
-          <label className="block text-xs font-semibold text-pearl-400 uppercase tracking-wider mb-1.5">
-            Tags (Press Enter to add)
-          </label>
-          <div className="flex flex-wrap items-center gap-1.5 mb-2">
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                onClick={() => handleRemoveTag(tag)}
-                className="cursor-pointer text-xs px-2.5 py-1 rounded-full bg-navy-700 text-pearl-200 border border-white/10 hover:border-crimson-400 transition-colors"
-                title="Click to remove"
-              >
-                #{tag} ×
-              </span>
-            ))}
-          </div>
-          <input
-            type="text"
-            placeholder="Add tag (e.g. Work, Festive, Reimbursable)..."
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleAddTag}
-            className="w-full bg-navy-800/90 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-pearl-100 focus:outline-none focus:border-gold-500"
-          />
         </div>
 
         {/* Receipt & Recurring Toggles */}

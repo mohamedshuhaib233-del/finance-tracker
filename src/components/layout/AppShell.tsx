@@ -1,6 +1,5 @@
 import React from 'react';
 import { Shield, Bell, Lock, Crown, WifiOff } from 'lucide-react';
-import { DeviceFrameToggle } from './DeviceFrameToggle';
 import { BottomNav } from './BottomNav';
 import { Account, SmartNotification, UserSettings } from '../../types';
 
@@ -13,8 +12,6 @@ interface AppShellProps {
   notifications: SmartNotification[];
   userSettings: UserSettings | null;
   onLockApp: () => void;
-  isMobileFrame: boolean;
-  setIsMobileFrame: (val: boolean) => void;
   currencySymbol: string;
 }
 
@@ -27,8 +24,6 @@ export const AppShell: React.FC<AppShellProps> = ({
   notifications,
   userSettings,
   onLockApp,
-  isMobileFrame,
-  setIsMobileFrame,
   currencySymbol,
 }) => {
   // Calculate Net Worth: Assets - Liabilities
@@ -74,10 +69,8 @@ export const AppShell: React.FC<AppShellProps> = ({
             </span>
           </div>
 
-          {/* Controls: Device Frame Toggle, Notifications, App Lock */}
+          {/* Controls: Notifications, App Lock */}
           <div className="flex items-center gap-2">
-            <DeviceFrameToggle isMobileFrame={isMobileFrame} onToggle={setIsMobileFrame} />
-
             {/* Offline badge */}
             <div
               title="100% Offline Relational Storage (IndexedDB)"
@@ -114,40 +107,16 @@ export const AppShell: React.FC<AppShellProps> = ({
         </div>
       </header>
 
-      {/* Main Content Area */}
+      {/* Main Content Area - Natural Responsive (Desktop on desktop, Mobile on mobile) */}
       <main className="w-full flex-1 flex justify-center p-0 sm:py-6 sm:px-4">
-        {isMobileFrame ? (
-          /* Simulated iPhone / Android Native Device Frame */
-          <div className="w-full max-w-[430px] my-auto bg-navy-950 rounded-[48px] border-[10px] border-navy-850 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.1)] overflow-hidden flex flex-col relative h-[844px]">
-            {/* Dynamic Island / Speaker Notch */}
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-40 flex items-center justify-between px-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-navy-900 border border-white/20" />
-              <div className="w-2 h-2 rounded-full bg-emerald-500/80" />
-            </div>
-
-            {/* Mobile Viewport Screen */}
-            <div className="flex-1 overflow-y-auto pt-7 pb-20 px-4 relative">
-              {children}
-            </div>
-
-            {/* Bottom Nav inside phone frame */}
-            <BottomNav
-              activeScreen={activeScreen}
-              onNavigate={onNavigate}
-              onQuickAction={onQuickAction}
-            />
-          </div>
-        ) : (
-          /* Desktop / Full Responsive Viewport */
-          <div className="w-full max-w-6xl pb-28 px-4 sm:px-6">
-            {children}
-            <BottomNav
-              activeScreen={activeScreen}
-              onNavigate={onNavigate}
-              onQuickAction={onQuickAction}
-            />
-          </div>
-        )}
+        <div className="w-full max-w-6xl pb-28 px-4 sm:px-6">
+          {children}
+          <BottomNav
+            activeScreen={activeScreen}
+            onNavigate={onNavigate}
+            onQuickAction={onQuickAction}
+          />
+        </div>
       </main>
     </div>
   );

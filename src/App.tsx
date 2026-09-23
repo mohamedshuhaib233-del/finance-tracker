@@ -53,7 +53,6 @@ export function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [isAppLocked, setIsAppLocked] = useState(true);
   const [isOnboarded, setIsOnboarded] = useState(true);
-  const [isMobileFrame, setIsMobileFrame] = useState(false);
 
   // Active Screen
   const [activeScreen, setActiveScreen] = useState('dashboard');
@@ -644,8 +643,6 @@ export function App() {
       notifications={notifications}
       userSettings={userSettings}
       onLockApp={() => setIsAppLocked(true)}
-      isMobileFrame={isMobileFrame}
-      setIsMobileFrame={setIsMobileFrame}
       currencySymbol={currencySymbol}
     >
       {renderActiveScreen()}

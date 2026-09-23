@@ -367,12 +367,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                   </div>
                   <div>
                     <div className="font-semibold text-pearl-100 text-sm">
-                      {tx.notes || tx.category}
+                      {tx.category}
                     </div>
                     <div className="text-[11px] text-pearl-400 flex items-center gap-1.5">
+                      {tx.subcategory && (
+                        <>
+                          <span>{tx.subcategory}</span>
+                          <span>•</span>
+                        </>
+                      )}
                       <span>{tx.date}</span>
-                      <span>•</span>
-                      <span>{tx.category}</span>
                       {tx.isAutoPosted && (
                         <span className="text-[10px] text-gold-400 bg-gold-500/10 px-1 rounded">Auto</span>
                       )}
