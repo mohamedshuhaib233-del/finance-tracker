@@ -5,12 +5,14 @@ interface AppLockScreenProps {
   correctPin: string;
   onUnlock: () => void;
   userName?: string;
+  onSwitchUser?: () => void;
 }
 
 export const AppLockScreen: React.FC<AppLockScreenProps> = ({
   correctPin = '0000',
   onUnlock,
   userName = 'User',
+  onSwitchUser,
 }) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
@@ -261,6 +263,19 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
             <Delete className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Switch User / Setup New Profile */}
+        {onSwitchUser && (
+          <div className="pt-2 text-center">
+            <button
+              type="button"
+              onClick={onSwitchUser}
+              className="text-xs text-pearl-400 hover:text-gold-300 transition-colors underline underline-offset-4"
+            >
+              Switch Account / Set Up New Vault
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

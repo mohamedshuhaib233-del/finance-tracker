@@ -41,13 +41,13 @@ export const INCOME_CATEGORIES = [
 export const INITIAL_USER_SETTINGS: UserSettings = {
   id: 'user-default-1',
   baseCurrency: 'INR',
-  pinCode: '0000',
+  pinCode: '',
   isAppLocked: true,
   requirePinOnResume: true,
   biometricSimulated: true,
   theme: 'royal_dark',
   userName: 'User',
-  isOnboarded: true,
+  isOnboarded: false,
   emergencyFundMonthsTarget: 6,
   lastCloudSync: new Date().toISOString(),
 };

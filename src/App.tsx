@@ -52,7 +52,7 @@ export function App() {
   // Application Life-Cycle States
   const [showSplash, setShowSplash] = useState(true);
   const [isAppLocked, setIsAppLocked] = useState(true);
-  const [isOnboarded, setIsOnboarded] = useState(true);
+  const [isOnboarded, setIsOnboarded] = useState(false);
 
   // Active Screen
   const [activeScreen, setActiveScreen] = useState('dashboard');
@@ -106,7 +106,9 @@ export function App() {
 
       if (sets && sets.length > 0) {
         setUserSettings(sets[0]);
-        setIsOnboarded(sets[0].isOnboarded);
+        setIsOnboarded(Boolean(sets[0].isOnboarded));
+      } else {
+        setIsOnboarded(false);
       }
     } catch (e) {
       console.error('Dexie database load error:', e);
@@ -310,42 +312,72 @@ export function App() {
 
   const handleCompleteOnboarding = async (settings: {
     baseCurrency: CurrencyCode;
-    pin?: string;
+    pin: string;
     userName: string;
+    enableBiometrics?: boolean;
   }) => {
-    if (userSettings) {
-      await db.userSettings.update(userSettings.id, {
-        baseCurrency: settings.baseCurrency,
-        userName: settings.userName,
-        pinCode: settings.pin || '0000',
-        isOnboarded: true,
-      });
+    try {
+      if (userSettings) {
+        await db.userSettings.update(userSettings.id, {
+          baseCurrency: settings.baseCurrency,
+          userName: settings.userName,
+          pinCode: settings.pin,
+          isOnboarded: true,
+          isAppLocked: true,
+          requirePinOnResume: true,
+        });
+      } else {
+        await db.userSettings.add({
+          id: 'user-default-1',
+          baseCurrency: settings.baseCurrency,
+          userName: settings.userName,
+          pinCode: settings.pin,
+          isOnboarded: true,
+          isAppLocked: true,
+          requirePinOnResume: true,
+          biometricSimulated: true,
+          theme: 'royal_dark',
+          emergencyFundMonthsTarget: 6,
+          lastCloudSync: new Date().toISOString(),
+        });
+      }
+      setIsOnboarded(true);
+      setIsAppLocked(false);
+      await refreshAllData();
+    } catch (e) {
+      console.error('Onboarding save error:', e);
     }
-    setIsOnboarded(true);
-    await refreshAllData();
+  };
+
+  const handleSwitchUser = () => {
+    setIsOnboarded(false);
+    setIsAppLocked(false);
+    setActiveScreen('dashboard');
   };
 
   // -------------------------------------------------------------
-  // CONDITIONAL GATES: Splash, AppLock, Onboarding
+  // CONDITIONAL GATES: Splash, Onboarding (First-Time), AppLock
   // -------------------------------------------------------------
 
   if (showSplash) {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
   }
 
-  // App Lock Gate: Prompts for PIN on startup, tab resume, or manual lock
+  // 1. First-time or new user setup: Create Vault & Custom PIN
+  if (!isOnboarded) {
+    return <OnboardingScreen onComplete={handleCompleteOnboarding} />;
+  }
+
+  // 2. Returning User: Protected by Custom PIN / Biometrics
   if (isAppLocked && userSettings?.isAppLocked !== false) {
     return (
       <AppLockScreen
-        correctPin={userSettings?.pinCode || '0000'}
+        correctPin={userSettings?.pinCode || ''}
         onUnlock={() => setIsAppLocked(false)}
         userName={userSettings?.userName}
+        onSwitchUser={handleSwitchUser}
       />
     );
-  }
-
-  if (!isOnboarded) {
-    return <OnboardingScreen onComplete={handleCompleteOnboarding} />;
   }
 
   // -------------------------------------------------------------
@@ -620,6 +652,7 @@ export function App() {
             onResetDemoData={handleResetDemoData}
             onNavigateCurrency={() => setActiveScreen('currency')}
             onLockApp={() => setIsAppLocked(true)}
+            onSwitchUser={handleSwitchUser}
           />
         );
 

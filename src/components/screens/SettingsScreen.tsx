@@ -10,6 +10,7 @@ interface SettingsScreenProps {
   onResetDemoData: () => Promise<void>;
   onNavigateCurrency: () => void;
   onLockApp: () => void;
+  onSwitchUser: () => void;
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
@@ -19,9 +20,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   onResetDemoData,
   onNavigateCurrency,
   onLockApp,
+  onSwitchUser,
 }) => {
   const [userName, setUserName] = useState(userSettings?.userName || 'User');
-  const [pin, setPin] = useState(userSettings?.pinCode || '0000');
+  const [pin, setPin] = useState(userSettings?.pinCode || '');
   const [appLockEnabled, setAppLockEnabled] = useState(userSettings?.isAppLocked ?? true);
   const [requirePin, setRequirePin] = useState(userSettings?.requirePinOnResume ?? true);
   const [monthsTarget, setMonthsTarget] = useState(userSettings?.emergencyFundMonthsTarget || 6);
@@ -176,6 +178,28 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           {savedMessage ? 'Settings Saved Successfully!' : 'Save Preferences'}
         </button>
       </form>
+
+      {/* Multi-User & Vault Setup */}
+      <div className="glass-card rounded-2xl p-4 border border-white/10 space-y-3">
+        <span className="text-xs font-bold uppercase tracking-wider text-pearl-400 block">
+          Vault & User Setup
+        </span>
+        <p className="text-xs text-pearl-300">
+          Active Vault: <strong className="text-gold-300">{userSettings?.userName || 'User'}</strong>
+        </p>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (window.confirm('Do you want to set up a new vault or switch profile? This will launch the setup wizard.')) {
+              onSwitchUser();
+            }
+          }}
+          className="w-full py-2.5 rounded-xl bg-navy-800 hover:bg-gold-500/20 border border-white/10 hover:border-gold-500/30 text-gold-300 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+        >
+          <RotateCcw className="w-3.5 h-3.5" /> Set Up New Vault / Switch Account
+        </button>
+      </div>
 
       {/* Database Operations */}
       <div className="glass-card rounded-2xl p-4 border border-white/10 space-y-3">
