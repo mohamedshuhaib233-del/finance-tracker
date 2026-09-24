@@ -48,9 +48,11 @@ export const AppShell: React.FC<AppShellProps> = ({
             onClick={() => onNavigate('dashboard')}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-500 border border-emerald-400/40 flex items-center justify-center shadow-gold group-hover:scale-105 transition-transform text-white">
-              <Crown className="w-4 h-4 text-emerald-50" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Finance Tracker Logo"
+              className="w-8 h-8 rounded-xl object-contain shadow-sm group-hover:scale-105 transition-transform"
+            />
             <div>
               <span className="font-display font-bold text-base tracking-wide text-emerald-900">
                 Finance Tracker

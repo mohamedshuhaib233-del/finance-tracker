@@ -27,13 +27,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       <div className="absolute w-96 h-96 rounded-full bg-navy-800/60 filter blur-3xl -z-10" />
       <div className="absolute w-64 h-64 rounded-full bg-gold-500/10 filter blur-2xl -z-10" />
 
-      {/* Luxury Crest Badge */}
+      {/* Brand Logo Badge */}
       <div className="relative mb-6 animate-bounce">
-        <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-navy-800 via-navy-700 to-navy-600 border-2 border-gold-500/60 flex items-center justify-center shadow-gold">
-          <Crown className="w-12 h-12 text-gold-400" />
+        <div className="w-28 h-28 rounded-3xl overflow-hidden shadow-2xl shadow-emerald-700/25 border-2 border-emerald-400/40 bg-white p-2">
+          <img src="/logo.png" alt="Finance Tracker Logo" className="w-full h-full object-contain rounded-2xl" />
         </div>
         <div className="absolute -top-1 -right-1">
-          <Sparkles className="w-6 h-6 text-gold-300 animate-spin" />
+          <Sparkles className="w-6 h-6 text-emerald-500 animate-spin" />
         </div>
       </div>
 
