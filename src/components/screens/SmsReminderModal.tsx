@@ -7,15 +7,11 @@ import {
   ArrowUpRight,
   Phone,
   User,
-  IndianRupee,
   FileText,
   Copy,
   Check,
-  CheckCircle2,
   Trash2,
-  Share2,
   Clock,
-  Sparkles,
   AlertCircle,
   ExternalLink,
 } from 'lucide-react';
@@ -43,7 +39,6 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
   const [personName, setPersonName] = useState('');
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
-  const [language, setLanguage] = useState<'en' | 'ml'>('en');
   const [customMessage, setCustomMessage] = useState('');
   const [isMessageEdited, setIsMessageEdited] = useState(false);
 
@@ -69,10 +64,9 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
   useEffect(() => {
     if (!isMessageEdited) {
       const numAmount = parseFloat(amount) || 0;
-      const generator = language === 'ml' ? SmsService.generateMalayalamMessage : SmsService.generateSmsMessage;
-      const generated = generator({
+      const generated = SmsService.generateSmsMessage({
         type,
-        personName: personName.trim() || (language === 'ml' ? 'സുഹൃത്തേ' : 'Sir/Madam'),
+        personName: personName.trim() || 'Sir/Madam',
         amount: numAmount,
         senderName: senderName || 'Me',
         notes: notes.trim(),
@@ -80,24 +74,24 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
       });
       setCustomMessage(generated);
     }
-  }, [type, personName, amount, notes, language, isMessageEdited, senderName, currencySymbol]);
+  }, [type, personName, amount, notes, isMessageEdited, senderName, currencySymbol]);
 
   if (!isOpen) return null;
 
   const handleSendSms = () => {
     const numAmount = parseFloat(amount);
     if (!phoneNumber.trim()) {
-      setValidationError('ദയവായി ഫോൺ നമ്പർ നൽകുക (Please enter phone number).');
+      setValidationError('Please enter a valid phone number.');
       return;
     }
     if (!numAmount || numAmount <= 0) {
-      setValidationError('സാധുവായ തുക നൽകുക (Please enter a valid amount).');
+      setValidationError('Please enter a valid amount.');
       return;
     }
 
     setValidationError('');
 
-    // 1. Auto-save this reminder record
+    // Auto-save this reminder record
     const saved = SmsService.saveReminder({
       vaultId: getActiveVaultId(),
       personName: personName.trim() || 'Contact',
@@ -110,18 +104,18 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
     SmsService.markSent(saved.id, getActiveVaultId());
     loadReminders();
 
-    // 2. Trigger native SMS application
+    // Trigger native SMS application
     SmsService.sendNativeSms(phoneNumber.trim(), customMessage);
   };
 
   const handleSendWhatsApp = () => {
     const numAmount = parseFloat(amount);
     if (!phoneNumber.trim()) {
-      setValidationError('ദയവായി ഫോൺ നമ്പർ നൽകുക (Please enter phone number).');
+      setValidationError('Please enter a valid phone number.');
       return;
     }
     if (!numAmount || numAmount <= 0) {
-      setValidationError('സാധുവായ തുക നൽകുക (Please enter a valid amount).');
+      setValidationError('Please enter a valid amount.');
       return;
     }
 
@@ -151,11 +145,11 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
   const handleSaveOnly = () => {
     const numAmount = parseFloat(amount);
     if (!phoneNumber.trim()) {
-      setValidationError('ദയവായി ഫോൺ നമ്പർ നൽകുക (Please enter phone number).');
+      setValidationError('Please enter a valid phone number.');
       return;
     }
     if (!numAmount || numAmount <= 0) {
-      setValidationError('സാധുവായ തുക നൽകുക (Please enter a valid amount).');
+      setValidationError('Please enter a valid amount.');
       return;
     }
 
@@ -173,7 +167,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
     setTimeout(() => {
       setSavedSuccess(false);
       setActiveTab('list');
-    }, 1200);
+    }, 1000);
   };
 
   // Calculations for summary
@@ -198,7 +192,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
               <h3 className="text-base sm:text-lg font-bold font-display text-slate-900">
                 SMS Payment Reminders
               </h3>
-              <p className="text-xs text-slate-500">പണം ഇടപാടുകൾ & SMS ഓർമ്മപ്പെടുത്തൽ</p>
+              <p className="text-xs text-slate-500">Track dues & send payment reminders via SMS</p>
             </div>
           </div>
 
@@ -220,7 +214,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Send className="w-3.5 h-3.5" /> പുതിയ SMS അയക്കുക
+            <Send className="w-3.5 h-3.5" /> Send Reminder
           </button>
           <button
             onClick={() => setActiveTab('list')}
@@ -230,7 +224,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Clock className="w-3.5 h-3.5" /> കണക്കുകൾ / ലിസ്റ്റ് ({reminders.length})
+            <Clock className="w-3.5 h-3.5" /> Dues Ledger ({reminders.length})
           </button>
         </div>
 
@@ -238,10 +232,10 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
         <div className="p-5 overflow-y-auto space-y-4 flex-1">
           {activeTab === 'create' ? (
             <div className="space-y-4">
-              {/* Type Switcher: Paisa Kittanano / Paisa Kodukkanano */}
+              {/* Type Switcher: To Receive / To Pay */}
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2">
-                  ഇടപാട് തരം തിരഞ്ഞെടുക്കുക (Transaction Type)
+                  Transaction Type
                 </label>
                 <div className="grid grid-cols-2 gap-2.5">
                   <button
@@ -264,8 +258,8 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
                       <ArrowDownLeft className="w-5 h-5 stroke-[2.2]" />
                     </div>
                     <div>
-                      <div className="text-xs font-bold">പണം ലഭിക്കാൻ</div>
-                      <div className="text-[10px] text-slate-500">You Owe Me (To Receive)</div>
+                      <div className="text-xs font-bold">To Receive</div>
+                      <div className="text-[10px] text-slate-500">You Owe Me</div>
                     </div>
                   </button>
 
@@ -289,8 +283,8 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
                       <ArrowUpRight className="w-5 h-5 stroke-[2.2]" />
                     </div>
                     <div>
-                      <div className="text-xs font-bold">പണം നൽകാൻ</div>
-                      <div className="text-[10px] text-slate-500">I Owe You (To Pay)</div>
+                      <div className="text-xs font-bold">To Pay</div>
+                      <div className="text-[10px] text-slate-500">I Owe You</div>
                     </div>
                   </button>
                 </div>
@@ -300,7 +294,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-700 block mb-1">
-                    ഫോൺ നമ്പർ (Phone Number) *
+                    Phone Number *
                   </label>
                   <div className="relative">
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -316,7 +310,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
 
                 <div>
                   <label className="text-xs font-semibold text-slate-700 block mb-1">
-                    വ്യക്തിയുടെ പേര് (Person Name)
+                    Contact / Person Name
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -324,7 +318,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
                       type="text"
                       value={personName}
                       onChange={(e) => setPersonName(e.target.value)}
-                      placeholder="e.g. Rahul, Friend"
+                      placeholder="e.g. Rahul, Friend, Shop"
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-medium text-slate-900 outline-none"
                     />
                   </div>
@@ -335,7 +329,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-700 block mb-1">
-                    തുക (Amount in {currencySymbol}) *
+                    Amount ({currencySymbol}) *
                   </label>
                   <div className="relative">
                     <span className="text-slate-400 font-bold absolute left-3 top-2.5 text-sm">
@@ -353,7 +347,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
 
                 <div>
                   <label className="text-xs font-semibold text-slate-700 block mb-1">
-                    കാരണം / വിവരണം (Note / Purpose)
+                    Note / Purpose (Optional)
                   </label>
                   <div className="relative">
                     <FileText className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -361,14 +355,14 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
                       type="text"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="e.g. Lunch split, Shop bill"
+                      placeholder="e.g. Dinner, Fuel, Rent"
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-medium text-slate-900 outline-none"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Error Notice */}
+              {/* Validation Error Notice */}
               {validationError && (
                 <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
@@ -380,36 +374,8 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
               <div className="space-y-2 pt-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600" /> SMS മെസ്സേജ് പ്രിവ്യൂ (Message Preview)
+                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600" /> SMS Message Preview
                   </span>
-
-                  {/* Language switch */}
-                  <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[11px] font-semibold">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLanguage('en');
-                        setIsMessageEdited(false);
-                      }}
-                      className={`px-2 py-0.5 rounded-md transition-colors ${
-                        language === 'en' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-500'
-                      }`}
-                    >
-                      English
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLanguage('ml');
-                        setIsMessageEdited(false);
-                      }}
-                      className={`px-2 py-0.5 rounded-md transition-colors ${
-                        language === 'ml' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-500'
-                      }`}
-                    >
-                      മലയാളം
-                    </button>
-                  </div>
                 </div>
 
                 <div className="relative">
@@ -440,7 +406,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
                   onClick={handleSendSms}
                   className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all active:scale-98"
                 >
-                  <Phone className="w-4 h-4" /> 📱 Send Normal SMS (SMS ആപ്പിലേക്ക് അയക്കുക)
+                  <Phone className="w-4 h-4" /> 📱 Send Normal SMS (Open Messaging App)
                 </button>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -449,7 +415,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
                     onClick={handleSendWhatsApp}
                     className="py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                   >
-                    <ExternalLink className="w-3.5 h-3.5 text-emerald-600" /> WhatsApp വഴി അയക്കുക
+                    <ExternalLink className="w-3.5 h-3.5 text-emerald-600" /> Send via WhatsApp
                   </button>
 
                   <button
@@ -458,7 +424,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
                     className="py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                   >
                     {savedSuccess ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <FileText className="w-3.5 h-3.5" />}
-                    <span>{savedSuccess ? 'സേവ് ചെയ്തു!' : 'കണക്കിൽ സേവ് ചെയ്യുക'}</span>
+                    <span>{savedSuccess ? 'Saved!' : 'Save to Ledger'}</span>
                   </button>
                 </div>
               </div>
@@ -469,13 +435,13 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
               {/* Summary Cards */}
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200/80">
-                  <span className="text-[11px] font-semibold text-emerald-800 block">ആകെ ലഭിക്കാൻ (To Receive)</span>
+                  <span className="text-[11px] font-semibold text-emerald-800 block">Total to Receive</span>
                   <span className="text-lg font-bold font-display text-emerald-700">
                     {currencySymbol}{totalToReceive.toLocaleString('en-IN')}
                   </span>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200/80">
-                  <span className="text-[11px] font-semibold text-rose-800 block">ആകെ നൽകാൻ (To Pay)</span>
+                  <span className="text-[11px] font-semibold text-rose-800 block">Total to Pay</span>
                   <span className="text-lg font-bold font-display text-rose-700">
                     {currencySymbol}{totalToPay.toLocaleString('en-IN')}
                   </span>
@@ -486,13 +452,13 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
               {reminders.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 space-y-2">
                   <MessageSquare className="w-10 h-10 text-slate-300 mx-auto" />
-                  <p className="text-xs">ഇതുവരെ SMS ഇടപാടുകൾ ഒന്നും രേഖപ്പെടുത്തിയിട്ടില്ല.</p>
+                  <p className="text-xs">No payment dues recorded yet.</p>
                   <button
                     type="button"
                     onClick={() => setActiveTab('create')}
                     className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold"
                   >
-                    + ആദ്യത്തെ SMS തയ്യാറാക്കുക
+                    + Create First Reminder
                   </button>
                 </div>
               ) : (
@@ -538,7 +504,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
                               {currencySymbol}{r.amount.toLocaleString('en-IN')}
                             </div>
                             <span className="text-[10px] text-slate-400">
-                              {isToReceive ? 'ലഭിക്കാൻ' : 'നൽകാൻ'}
+                              {isToReceive ? 'To Receive' : 'To Pay'}
                             </span>
                           </div>
 
@@ -557,7 +523,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
                               SmsService.sendNativeSms(r.phoneNumber, msg);
                             }}
                             className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
-                            title="Send SMS Again"
+                            title="Resend SMS"
                           >
                             <Phone className="w-3.5 h-3.5" />
                           </button>
@@ -578,7 +544,7 @@ export const SmsReminderModal: React.FC<SmsReminderModalProps> = ({
                                 ? 'bg-emerald-600 text-white border-emerald-600'
                                 : 'bg-slate-50 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 border-slate-200'
                             }`}
-                            title={isSettled ? 'Mark Pending' : 'Mark Settled'}
+                            title={isSettled ? 'Mark as Pending' : 'Mark as Settled'}
                           >
                             <Check className="w-3.5 h-3.5" />
                           </button>

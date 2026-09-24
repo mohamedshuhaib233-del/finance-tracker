@@ -128,9 +128,15 @@ export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
 
   const hubModules = [
     {
-      group: 'Money Tracking & SMS Reminders',
+      group: 'Money Tracking',
       items: [
-        { id: 'sms_reminders', label: 'SMS Payment Reminders', desc: 'Send SMS for money to receive or pay', icon: MessageSquare, color: 'text-emerald-700 bg-emerald-50' },
+        {
+          id: 'sms_reminders',
+          label: pendingRemindersCount > 0 ? `SMS Payment Reminders (${pendingRemindersCount})` : 'SMS Payment Reminders',
+          desc: 'Send SMS for money to receive or pay',
+          icon: MessageSquare,
+          color: 'text-emerald-700 bg-emerald-50',
+        },
         { id: 'accounts', label: 'Accounts', desc: 'Bank, cash, credit card & UPI wallets', icon: Building2, color: 'text-blue-700 bg-blue-50' },
         { id: 'budgets', label: 'Budgets', desc: 'Monthly spending limits', icon: PieChart, color: 'text-amber-700 bg-amber-50' },
         { id: 'goals', label: 'Savings Goals', desc: 'Target savings tracking', icon: Target, color: 'text-teal-700 bg-teal-50' },
@@ -297,41 +303,7 @@ export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
         </div>
       </div>
 
-      {/* PROFILE SMS SECTION: Direct SMS Payment Reminders Card */}
-      <div className="bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-800 text-white rounded-3xl p-5 sm:p-6 border border-emerald-600/30 shadow-md relative overflow-hidden">
-        {/* Subtle decorative glow */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full filter blur-xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="w-8 h-8 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center text-white">
-                <MessageSquare className="w-4 h-4" />
-              </span>
-              <h3 className="text-base sm:text-lg font-bold font-display text-white">
-                SMS Payment Reminders
-              </h3>
-              {pendingRemindersCount > 0 && (
-                <span className="text-[11px] bg-emerald-400/20 text-emerald-200 border border-emerald-300/30 px-2 py-0.5 rounded-full font-bold">
-                  {pendingRemindersCount} Pending
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-emerald-100 max-w-md leading-relaxed">
-              ആർക്കെങ്കിലും പണം നൽകാനുണ്ടെങ്കിലോ ആരെങ്കിലും പണം തരാനുണ്ടെങ്കിലോ ഫോൺ നമ്പർ നൽകി നേരിട്ട് സാധാരണ SMS അയക്കുക.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsSmsModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-white text-emerald-800 font-bold text-xs sm:text-sm hover:bg-emerald-50 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2 shrink-0"
-          >
-            <Send className="w-4 h-4 text-emerald-700" />
-            <span>SMS അയക്കുക / കണക്കുകൾ</span>
-          </button>
-        </div>
-      </div>
 
       {/* Module Groups (Hub & Tools) */}
       <div className="space-y-4">
