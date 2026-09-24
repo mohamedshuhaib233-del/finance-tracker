@@ -661,6 +661,8 @@ export function App() {
       default:
         return (
           <MoreHubScreen
+            userSettings={userSettings}
+            onUpdateSettings={handleUpdateSettings}
             onNavigate={setActiveScreen}
             onLockApp={() => setIsAppLocked(true)}
           />

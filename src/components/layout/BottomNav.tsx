@@ -4,7 +4,7 @@ import {
   ReceiptText,
   Bot,
   PieChart,
-  Menu,
+  User,
   Plus,
   ArrowDownLeft,
   ArrowUpRight,
@@ -32,7 +32,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     { id: 'transactions', label: 'Activity', icon: ReceiptText },
     { id: 'fab', label: '', icon: Plus, isFab: true },
     { id: 'ai_coach', label: 'AI Coach', icon: Bot },
-    { id: 'more', label: 'Hub', icon: Menu },
+    { id: 'more', label: 'Profile', icon: User },
   ];
 
   return (

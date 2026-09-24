@@ -146,6 +146,7 @@ export interface UserSettings {
   biometricSimulated: boolean;
   theme: 'royal_dark' | 'pearl_light';
   userName: string;
+  avatarUrl?: string;
   isOnboarded: boolean;
   lastCloudSync?: string;
   emergencyFundMonthsTarget: number; // default 6 months
