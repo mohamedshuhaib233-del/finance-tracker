@@ -25,6 +25,94 @@ import {
   DEMO_TRANSACTIONS,
 } from './seedData';
 
+// -------------------------------------------------------------
+// Multi-Vault Metadata & Registry (Local Storage Isolated)
+// -------------------------------------------------------------
+export interface VaultMeta {
+  id: string;
+  pin: string;
+  userName: string;
+  createdAt: string;
+  lastAccessedAt?: string;
+}
+
+const VAULT_STORAGE_KEY = 'finance_tracker_vaults';
+const ACTIVE_VAULT_KEY = 'finance_tracker_active_vault';
+
+export function getRegisteredVaults(): VaultMeta[] {
+  try {
+    const raw = localStorage.getItem(VAULT_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Ensure Owner's 0000 vault is always present
+        if (!parsed.some((v: VaultMeta) => v.pin === '0000')) {
+          parsed.unshift({
+            id: 'vault_0000',
+            pin: '0000',
+            userName: 'Owner',
+            createdAt: new Date().toISOString(),
+          });
+          localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(parsed));
+        }
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Error reading vaults from localStorage:', e);
+  }
+
+  // Default initial vault for Owner (PIN: 0000)
+  const initialVaults: VaultMeta[] = [
+    {
+      id: 'vault_0000',
+      pin: '0000',
+      userName: 'Owner',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+  localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(initialVaults));
+  return initialVaults;
+}
+
+export function findVaultByPin(pin: string): VaultMeta | undefined {
+  const vaults = getRegisteredVaults();
+  return vaults.find((v) => v.pin === pin);
+}
+
+export function registerVault(pin: string, userName?: string): VaultMeta {
+  const vaults = getRegisteredVaults();
+  const existing = vaults.find((v) => v.pin === pin);
+  if (existing) {
+    return existing;
+  }
+
+  const id = `vault_${pin}`;
+  const newVault: VaultMeta = {
+    id,
+    pin,
+    userName: userName?.trim() || (pin === '0000' ? 'Owner' : `User ${pin}`),
+    createdAt: new Date().toISOString(),
+    lastAccessedAt: new Date().toISOString(),
+  };
+
+  vaults.push(newVault);
+  localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(vaults));
+  return newVault;
+}
+
+export function updateVaultMeta(vaultId: string, updates: Partial<VaultMeta>): void {
+  const vaults = getRegisteredVaults();
+  const idx = vaults.findIndex((v) => v.id === vaultId);
+  if (idx !== -1) {
+    vaults[idx] = { ...vaults[idx], ...updates };
+    localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(vaults));
+  }
+}
+
+// -------------------------------------------------------------
+// Multi-Vault Dexie Database
+// -------------------------------------------------------------
 export class FinanceTrackerDatabase extends Dexie {
   accounts!: Table<Account, string>;
   transactions!: Table<Transaction, string>;
@@ -35,8 +123,11 @@ export class FinanceTrackerDatabase extends Dexie {
   notifications!: Table<SmartNotification, string>;
   userSettings!: Table<UserSettings, string>;
 
-  constructor() {
-    super('FinanceTrackerDB_v5');
+  vaultId: string;
+
+  constructor(vaultId = 'vault_0000') {
+    super(`FinanceVault_${vaultId}`);
+    this.vaultId = vaultId;
     this.version(1).stores({
       accounts: 'id, name, type, currency, includeInNetWorth, isArchived',
       transactions: 'id, type, amount, currency, accountId, toAccountId, category, date, isRecurring, createdAt',
@@ -52,16 +143,81 @@ export class FinanceTrackerDatabase extends Dexie {
   async initializeSeedData() {
     const accountsCount = await this.accounts.count();
     if (accountsCount === 0) {
-      await this.accounts.bulkAdd(INITIAL_ACCOUNTS);
-      if (INITIAL_TRANSACTIONS.length > 0) {
-        await this.transactions.bulkAdd(INITIAL_TRANSACTIONS);
+      let migrated = false;
+
+      // For owner's vault (vault_0000), migrate from previous unpartitioned database if available
+      if (this.vaultId === 'vault_0000') {
+        try {
+          const legacyExists = await Dexie.exists('FinanceTrackerDB_v5');
+          if (legacyExists) {
+            const legacyDb = new Dexie('FinanceTrackerDB_v5');
+            legacyDb.version(1).stores({
+              accounts: 'id, name, type, currency, includeInNetWorth, isArchived',
+              transactions: 'id, type, amount, currency, accountId, toAccountId, category, date, isRecurring, createdAt',
+              budgets: 'id, name, type, category, startDate, endDate',
+              savingsGoals: 'id, name, priority, status, linkedAccountId',
+              recurringRules: 'id, name, type, frequency, nextOccurrence, status',
+              subscriptions: 'id, name, renewalDate, isActive, accountId',
+              notifications: 'id, type, isRead, createdAt',
+              userSettings: 'id',
+            });
+            const [legAccs, legTxs, legBudgets, legGoals, legSubs, legRules, legNotifs, legSettings] = await Promise.all([
+              legacyDb.table<Account, string>('accounts').toArray(),
+              legacyDb.table<Transaction, string>('transactions').toArray(),
+              legacyDb.table<Budget, string>('budgets').toArray(),
+              legacyDb.table<SavingsGoal, string>('savingsGoals').toArray(),
+              legacyDb.table<Subscription, string>('subscriptions').toArray(),
+              legacyDb.table<RecurringRule, string>('recurringRules').toArray(),
+              legacyDb.table<SmartNotification, string>('notifications').toArray(),
+              legacyDb.table<UserSettings, string>('userSettings').toArray(),
+            ]);
+            legacyDb.close();
+
+            if (legAccs.length > 0) {
+              await this.accounts.bulkAdd(legAccs);
+              if (legTxs.length > 0) await this.transactions.bulkAdd(legTxs);
+              if (legBudgets.length > 0) await this.budgets.bulkAdd(legBudgets);
+              if (legGoals.length > 0) await this.savingsGoals.bulkAdd(legGoals);
+              if (legSubs.length > 0) await this.subscriptions.bulkAdd(legSubs);
+              if (legRules.length > 0) await this.recurringRules.bulkAdd(legRules);
+              if (legNotifs.length > 0) await this.notifications.bulkAdd(legNotifs);
+              if (legSettings.length > 0) {
+                await this.userSettings.bulkAdd(
+                  legSettings.map((s) => ({ ...s, pinCode: '0000', isOnboarded: true, isAppLocked: true }))
+                );
+              }
+              migrated = true;
+            }
+          }
+        } catch (migErr) {
+          console.warn('Legacy DB migration skipped:', migErr);
+        }
       }
-      await this.budgets.bulkAdd(INITIAL_BUDGETS);
-      await this.savingsGoals.bulkAdd(INITIAL_GOALS);
-      await this.subscriptions.bulkAdd(INITIAL_SUBSCRIPTIONS);
-      await this.recurringRules.bulkAdd(INITIAL_RECURRING_RULES);
-      await this.notifications.bulkAdd(INITIAL_NOTIFICATIONS);
-      await this.userSettings.add(INITIAL_USER_SETTINGS);
+
+      if (!migrated) {
+        await this.accounts.bulkAdd(INITIAL_ACCOUNTS);
+        if (this.vaultId === 'vault_0000' && INITIAL_TRANSACTIONS.length > 0) {
+          await this.transactions.bulkAdd(INITIAL_TRANSACTIONS);
+        }
+        await this.budgets.bulkAdd(INITIAL_BUDGETS);
+        await this.savingsGoals.bulkAdd(INITIAL_GOALS);
+        await this.subscriptions.bulkAdd(INITIAL_SUBSCRIPTIONS);
+        await this.recurringRules.bulkAdd(INITIAL_RECURRING_RULES);
+        await this.notifications.bulkAdd(INITIAL_NOTIFICATIONS);
+
+        const vaults = getRegisteredVaults();
+        const meta = vaults.find((v) => v.id === this.vaultId);
+        const pin = meta?.pin || (this.vaultId === 'vault_0000' ? '0000' : '');
+        const userName = meta?.userName || (this.vaultId === 'vault_0000' ? 'Owner' : 'User');
+
+        await this.userSettings.add({
+          ...INITIAL_USER_SETTINGS,
+          pinCode: pin,
+          userName: userName,
+          isOnboarded: true,
+          isAppLocked: true,
+        });
+      }
     }
   }
 
@@ -91,7 +247,7 @@ export class FinanceTrackerDatabase extends Dexie {
         id: `notif-${Date.now()}`,
         type: 'insight',
         title: 'Numbers Reset',
-        message: 'All account balances and transactions have been reset to ₹0.',
+        message: 'All account balances and transactions have been reset to ₹0 in this vault.',
         isRead: false,
         createdAt: new Date().toISOString(),
         actionScreen: 'dashboard',
@@ -126,14 +282,69 @@ export class FinanceTrackerDatabase extends Dexie {
       await this.subscriptions.bulkAdd(INITIAL_SUBSCRIPTIONS);
       await this.recurringRules.bulkAdd(INITIAL_RECURRING_RULES);
       await this.notifications.bulkAdd(DEMO_NOTIFICATIONS);
-      await this.userSettings.add(INITIAL_USER_SETTINGS);
+
+      const vaults = getRegisteredVaults();
+      const meta = vaults.find((v) => v.id === this.vaultId);
+      const pin = meta?.pin || (this.vaultId === 'vault_0000' ? '0000' : '');
+      const userName = meta?.userName || (this.vaultId === 'vault_0000' ? 'Owner' : 'User');
+
+      await this.userSettings.add({
+        ...INITIAL_USER_SETTINGS,
+        pinCode: pin,
+        userName: userName,
+        isOnboarded: true,
+        isAppLocked: true,
+      });
     });
   }
 }
 
-export const db = new FinanceTrackerDatabase();
+// -------------------------------------------------------------
+// Dynamic Active Vault DB Router & Cache
+// -------------------------------------------------------------
+const dbCache = new Map<string, FinanceTrackerDatabase>();
 
-// Accounting & Balance update helpers
+export function getVaultDb(vaultId: string): FinanceTrackerDatabase {
+  if (!dbCache.has(vaultId)) {
+    dbCache.set(vaultId, new FinanceTrackerDatabase(vaultId));
+  }
+  return dbCache.get(vaultId)!;
+}
+
+let activeVaultId = localStorage.getItem(ACTIVE_VAULT_KEY) || 'vault_0000';
+let activeDb = getVaultDb(activeVaultId);
+
+export function getActiveVaultId(): string {
+  return activeVaultId;
+}
+
+export function setActiveVault(vaultId: string): FinanceTrackerDatabase {
+  activeVaultId = vaultId;
+  localStorage.setItem(ACTIVE_VAULT_KEY, vaultId);
+  activeDb = getVaultDb(vaultId);
+  updateVaultMeta(vaultId, { lastAccessedAt: new Date().toISOString() });
+  return activeDb;
+}
+
+// Transparent Proxy that forwards all Dexie properties and methods to currently active vault
+export const db: FinanceTrackerDatabase = new Proxy({} as FinanceTrackerDatabase, {
+  get(_target, prop) {
+    const current = activeDb as any;
+    const val = current[prop];
+    if (typeof val === 'function') {
+      return val.bind(current);
+    }
+    return val;
+  },
+  set(_target, prop, value) {
+    (activeDb as any)[prop] = value;
+    return true;
+  },
+});
+
+// -------------------------------------------------------------
+// Accounting & Balance Update Helpers
+// -------------------------------------------------------------
 export async function recordTransaction(tx: Omit<Transaction, 'id' | 'createdAt'> & { id?: string }): Promise<Transaction> {
   const transactionId = tx.id || `tx-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
   const fullTx: Transaction = {

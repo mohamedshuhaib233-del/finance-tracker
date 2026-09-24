@@ -83,48 +83,48 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
   const recentTransactions = [...transactions]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5);
+    .slice(0, 8);
 
   const activeAlerts = notifications.filter((n) => !n.isRead).slice(0, 3);
 
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Top Banner: Total Net Worth Hero Card */}
-      <div className="relative rounded-3xl p-6 bg-gradient-to-br from-navy-900 via-navy-850 to-navy-800 border border-gold-500/30 shadow-luxury overflow-hidden">
-        {/* Decorative gold foil lines */}
-        <div className="absolute -right-10 -bottom-10 w-44 h-44 rounded-full bg-gold-500/10 filter blur-xl pointer-events-none" />
-        <div className="absolute top-0 right-0 p-4 opacity-20">
-          <Sparkles className="w-20 h-20 text-gold-400" />
+      <div className="relative rounded-3xl p-6 sm:p-7 bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-800 border border-emerald-600/30 text-white shadow-xl shadow-emerald-900/15 overflow-hidden">
+        {/* Decorative emerald ambient glow */}
+        <div className="absolute -right-10 -bottom-10 w-48 h-48 rounded-full bg-emerald-400/20 filter blur-2xl pointer-events-none" />
+        <div className="absolute top-0 right-0 p-4 opacity-15">
+          <Sparkles className="w-24 h-24 text-emerald-200" />
         </div>
 
         <div className="relative z-10">
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase font-semibold tracking-wider text-pearl-400">
+            <span className="text-xs uppercase font-bold tracking-wider text-emerald-100">
               Total Net Worth
             </span>
           </div>
 
-          <div className="mt-2 text-3xl sm:text-4xl font-extrabold font-display tracking-tight text-pearl-50">
+          <div className="mt-2 text-3xl sm:text-4xl font-extrabold font-display tracking-tight text-white">
             {currencySymbol}{netWorth.toLocaleString('en-IN')}
           </div>
 
           {/* Sub-breakdown of liquid vs debt */}
-          <div className="mt-4 pt-3 border-t border-white/10 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-            <div>
-              <span className="text-pearl-400 block text-[11px]">Available Cash</span>
-              <span className="font-semibold text-pearl-100 font-display">
+          <div className="mt-5 pt-3.5 border-t border-white/15 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 border border-white/10">
+              <span className="text-emerald-100 block text-[11px] font-medium">Available Cash</span>
+              <span className="font-bold text-white text-sm font-display">
                 {currencySymbol}{totalCashAvailable.toLocaleString('en-IN')}
               </span>
             </div>
-            <div>
-              <span className="text-pearl-400 block text-[11px]">Credit Card Debt</span>
-              <span className="font-semibold text-crimson-400 font-display">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 border border-white/10">
+              <span className="text-emerald-100 block text-[11px] font-medium">Credit Card Debt</span>
+              <span className="font-bold text-red-200 text-sm font-display">
                 {currencySymbol}{creditCardOutstanding.toLocaleString('en-IN')}
               </span>
             </div>
-            <div className="hidden sm:block">
-              <span className="text-pearl-400 block text-[11px]">Savings Goals</span>
-              <span className="font-semibold text-emerald-400 font-display">
+            <div className="hidden sm:block bg-white/10 backdrop-blur-sm rounded-xl p-2.5 border border-white/10">
+              <span className="text-emerald-100 block text-[11px] font-medium">Savings Goals</span>
+              <span className="font-bold text-emerald-200 text-sm font-display">
                 {currencySymbol}{totalSavings.toLocaleString('en-IN')}
               </span>
             </div>
@@ -320,20 +320,44 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
       {/* Recent Transactions */}
       <div>
         <div className="flex items-center justify-between mb-2.5">
-          <h3 className="text-xs uppercase font-bold tracking-wider text-pearl-400">Recent Transactions</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-xs uppercase font-bold tracking-wider text-slate-500">Recent Transactions</h3>
+            <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+              {recentTransactions.length}
+            </span>
+          </div>
           <button
             onClick={() => onNavigate('transactions')}
-            className="text-xs text-gold-400 hover:text-gold-300 font-semibold"
+            className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 transition-colors"
           >
-            View All
+            View All <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="glass-card rounded-2xl divide-y divide-white/10 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm divide-y divide-slate-100 overflow-hidden">
           {recentTransactions.length === 0 ? (
-            <div className="p-8 text-center text-pearl-400">
-              <p className="text-xs">No transactions recorded yet.</p>
-              <p className="text-[11px] text-pearl-400 mt-1">Tap + or use Quick Actions above to record your first transaction.</p>
+            <div className="p-8 text-center text-slate-500">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                <Calendar className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-semibold text-slate-800">No transactions recorded yet in this vault.</p>
+              <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                Tap below to record your first calculation or transaction.
+              </p>
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => onQuickAction('add_income')}
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-all"
+                >
+                  + Add Income
+                </button>
+                <button
+                  onClick={() => onQuickAction('add_expense')}
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all"
+                >
+                  + Add Expense
+                </button>
+              </div>
             </div>
           ) : (
             recentTransactions.map((tx) => {
@@ -345,65 +369,65 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                 <div
                   key={tx.id}
                   onClick={() => onSelectTransaction(tx)}
-                  className="p-3.5 flex items-center justify-between hover:bg-white/5 cursor-pointer transition-colors"
+                  className="p-3.5 flex items-center justify-between hover:bg-emerald-50/40 cursor-pointer transition-colors"
                 >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                      isIncome
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : isExpense
-                        ? 'bg-crimson-500/20 text-crimson-400'
-                        : 'bg-blue-500/20 text-blue-400'
-                    }`}
-                  >
-                    {isIncome ? (
-                      <ArrowDownLeft className="w-4 h-4" />
-                    ) : isExpense ? (
-                      <ArrowUpRight className="w-4 h-4" />
-                    ) : (
-                      <ArrowLeftRight className="w-4 h-4" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="font-semibold text-pearl-100 text-sm">
-                      {tx.category}
-                    </div>
-                    <div className="text-[11px] text-pearl-400 flex items-center gap-1.5">
-                      {tx.subcategory && (
-                        <>
-                          <span>{tx.subcategory}</span>
-                          <span>•</span>
-                        </>
-                      )}
-                      <span>{tx.date}</span>
-                      {tx.isAutoPosted && (
-                        <span className="text-[10px] text-gold-400 bg-gold-500/10 px-1 rounded">Auto</span>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                        isIncome
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : isExpense
+                          ? 'bg-slate-100 text-slate-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}
+                    >
+                      {isIncome ? (
+                        <ArrowDownLeft className="w-5 h-5 stroke-[2.2]" />
+                      ) : isExpense ? (
+                        <ArrowUpRight className="w-5 h-5 stroke-[2.2]" />
+                      ) : (
+                        <ArrowLeftRight className="w-5 h-5 stroke-[2.2]" />
                       )}
                     </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 text-sm">
+                        {tx.category}
+                      </div>
+                      <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                        {tx.subcategory && (
+                          <>
+                            <span className="text-slate-600 font-medium">{tx.subcategory}</span>
+                            <span>•</span>
+                          </>
+                        )}
+                        <span>{tx.date}</span>
+                        {tx.isAutoPosted && (
+                          <span className="text-[10px] text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded font-medium">Auto</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="text-right">
-                  <div
-                    className={`font-bold font-display text-sm ${
-                      isIncome
-                        ? 'text-emerald-400'
-                        : isExpense
-                        ? 'text-pearl-100'
-                        : 'text-blue-400'
-                    }`}
-                  >
-                    {isIncome ? '+' : isExpense ? '-' : ''}
-                    {currencySymbol}
-                    {tx.amount.toLocaleString('en-IN')}
+                  <div className="text-right">
+                    <div
+                      className={`font-bold font-display text-sm sm:text-base ${
+                        isIncome
+                          ? 'text-emerald-700'
+                          : isExpense
+                          ? 'text-slate-900'
+                          : 'text-blue-700'
+                      }`}
+                    >
+                      {isIncome ? '+' : isExpense ? '-' : ''}
+                      {currencySymbol}
+                      {tx.amount.toLocaleString('en-IN')}
+                    </div>
+                    <span className="text-[10px] text-slate-400 uppercase font-medium">{tx.currency}</span>
                   </div>
-                  <span className="text-[10px] text-pearl-400 uppercase">{tx.currency}</span>
                 </div>
-              </div>
-            );
-          })
-        )}
+              );
+            })
+          )}
         </div>
       </div>
     </div>

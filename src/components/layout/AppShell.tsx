@@ -41,18 +41,18 @@ export const AppShell: React.FC<AppShellProps> = ({
   return (
     <div className="min-h-screen bg-navy-950 text-pearl-100 flex flex-col items-center justify-start antialiased selection:bg-gold-500/30">
       {/* Top Global Utility Bar */}
-      <header className="w-full bg-navy-900/80 backdrop-blur-md border-b border-white/10 sticky top-0 z-20 px-4 py-2.5">
+      <header className="w-full bg-white/90 backdrop-blur-md border-b border-emerald-900/10 sticky top-0 z-20 px-4 py-2.5 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Brand Logo & Name */}
           <div
             onClick={() => onNavigate('dashboard')}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-navy-800 via-navy-700 to-navy-600 border border-gold-500/40 flex items-center justify-center shadow-gold group-hover:scale-105 transition-transform">
-              <Crown className="w-4 h-4 text-gold-400" />
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-500 border border-emerald-400/40 flex items-center justify-center shadow-gold group-hover:scale-105 transition-transform text-white">
+              <Crown className="w-4 h-4 text-emerald-50" />
             </div>
             <div>
-              <span className="font-display font-bold text-base tracking-wide text-pearl-50">
+              <span className="font-display font-bold text-base tracking-wide text-emerald-900">
                 Finance Tracker
               </span>
             </div>
@@ -61,10 +61,10 @@ export const AppShell: React.FC<AppShellProps> = ({
           {/* Quick Net Worth Ticker */}
           <div
             onClick={() => onNavigate('reports')}
-            className="hidden md:flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-navy-800/80 border border-white/10 hover:border-gold-500/30 cursor-pointer transition-all"
+            className="hidden md:flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-emerald-50/70 border border-emerald-200/70 hover:border-emerald-400 cursor-pointer transition-all"
           >
-            <span className="text-xs text-pearl-400 uppercase font-medium">Net Worth</span>
-            <span className="font-display font-bold text-sm text-pearl-50">
+            <span className="text-xs text-emerald-700 uppercase font-medium">Net Worth</span>
+            <span className="font-display font-bold text-sm text-emerald-950">
               {currencySymbol}{netWorth.toLocaleString('en-IN')}
             </span>
           </div>
@@ -74,21 +74,21 @@ export const AppShell: React.FC<AppShellProps> = ({
             {/* Offline badge */}
             <div
               title="100% Offline Relational Storage (IndexedDB)"
-              className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 font-medium"
             >
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Offline First
             </div>
 
             {/* Notifications Button */}
             <button
               onClick={() => onNavigate('notifications')}
-              className="relative p-2 rounded-xl bg-navy-800/80 hover:bg-white/10 border border-white/10 text-pearl-300 hover:text-pearl-100 transition-colors"
+              className="relative p-2 rounded-xl bg-emerald-50/80 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 transition-colors"
               title="Notifications"
             >
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gold-500 text-navy-950 font-bold text-[10px] flex items-center justify-center ring-2 ring-navy-900 animate-pulse">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-600 text-white font-bold text-[10px] flex items-center justify-center ring-2 ring-white animate-pulse">
                   {unreadCount}
                 </span>
               )}
@@ -97,10 +97,10 @@ export const AppShell: React.FC<AppShellProps> = ({
             {/* Lock Button */}
             <button
               onClick={onLockApp}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-navy-800/80 hover:bg-gold-500/20 border border-white/10 hover:border-gold-500/40 text-pearl-200 hover:text-gold-300 transition-colors text-xs font-semibold"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:shadow transition-all text-xs font-semibold"
               title="Lock App"
             >
-              <Lock className="w-3.5 h-3.5 text-gold-400" />
+              <Lock className="w-3.5 h-3.5 text-emerald-100" />
               <span>Lock</span>
             </button>
           </div>

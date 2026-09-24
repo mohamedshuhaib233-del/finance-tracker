@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { db, recordTransaction, deleteTransaction, reconcileAccount } from './db/database';
+import { db, recordTransaction, deleteTransaction, reconcileAccount, setActiveVault, getActiveVaultId, updateVaultMeta } from './db/database';
 import {
   Account,
   Budget,
@@ -292,6 +292,12 @@ export function App() {
   const handleUpdateSettings = async (newSettings: Partial<UserSettings>) => {
     if (userSettings) {
       await db.userSettings.update(userSettings.id, newSettings);
+      if (newSettings.pinCode) {
+        updateVaultMeta(getActiveVaultId(), { pin: newSettings.pinCode });
+      }
+      if (newSettings.userName) {
+        updateVaultMeta(getActiveVaultId(), { userName: newSettings.userName });
+      }
       await refreshAllData();
     }
   };
@@ -350,31 +356,26 @@ export function App() {
   };
 
   const handleSwitchUser = () => {
-    setIsOnboarded(false);
-    setIsAppLocked(false);
-    setActiveScreen('dashboard');
+    setIsAppLocked(true);
   };
 
   // -------------------------------------------------------------
-  // CONDITIONAL GATES: Splash, Onboarding (First-Time), AppLock
+  // CONDITIONAL GATES: Splash & Multi-Vault AppLock
   // -------------------------------------------------------------
 
   if (showSplash) {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
   }
 
-  // 1. First-time or new user setup: Create Vault & Custom PIN
-  if (!isOnboarded) {
-    return <OnboardingScreen onComplete={handleCompleteOnboarding} />;
-  }
-
-  // 2. Returning User: Protected by Custom PIN / Biometrics
-  if (isAppLocked && userSettings?.isAppLocked !== false) {
+  // Returning User or New User: Protected by Custom PIN / Biometrics
+  if (isAppLocked) {
     return (
       <AppLockScreen
-        correctPin={userSettings?.pinCode || ''}
-        onUnlock={() => setIsAppLocked(false)}
-        userName={userSettings?.userName}
+        onUnlock={async (vaultId: string) => {
+          setActiveVault(vaultId);
+          await refreshAllData();
+          setIsAppLocked(false);
+        }}
         onSwitchUser={handleSwitchUser}
       />
     );

@@ -1,18 +1,14 @@
-import React, { useState } from 'react';
-import { Lock, Fingerprint, Delete, Shield, Crown, Loader2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lock, Fingerprint, Delete, Shield, Crown, Loader2, AlertCircle, Plus, Check, UserCheck, KeyRound } from 'lucide-react';
+import { findVaultByPin, registerVault, getRegisteredVaults, VaultMeta } from '../../db/database';
 
 interface AppLockScreenProps {
-  correctPin: string;
-  onUnlock: () => void;
-  userName?: string;
+  onUnlock: (vaultId: string, userName?: string) => void;
   onSwitchUser?: () => void;
 }
 
 export const AppLockScreen: React.FC<AppLockScreenProps> = ({
-  correctPin = '0000',
   onUnlock,
-  userName = 'User',
-  onSwitchUser,
 }) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
@@ -20,35 +16,72 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [biometricStatus, setBiometricStatus] = useState<string | null>(null);
 
+  // New Vault Creation Modal state when an unrecognised PIN is entered
+  const [pendingNewPin, setPendingNewPin] = useState<string | null>(null);
+  const [newVaultName, setNewVaultName] = useState('');
+
+  // List registered vaults count
+  const [vaultsList, setVaultsList] = useState<VaultMeta[]>([]);
+
+  useEffect(() => {
+    setVaultsList(getRegisteredVaults());
+  }, []);
+
   const handleDigit = (digit: string) => {
+    if (pendingNewPin) return;
+
     if (pin.length < 4) {
       const nextPin = pin + digit;
       setPin(nextPin);
       setError(false);
       setErrorMessage('');
       setBiometricStatus(null);
+
       if (nextPin.length === 4) {
-        if (nextPin === correctPin) {
-          onUnlock();
+        // Look up registered vault by PIN
+        const matched = findVaultByPin(nextPin);
+        if (matched) {
+          // Success! Unlock this specific vault immediately
+          onUnlock(matched.id, matched.userName);
         } else {
-          setError(true);
-          setErrorMessage('Incorrect PIN');
-          setTimeout(() => setPin(''), 500);
+          // Prompt user to create a new vault with this new PIN
+          setPendingNewPin(nextPin);
+          setNewVaultName(`User ${nextPin}`);
         }
       }
     }
   };
 
   const handleDelete = () => {
+    if (pendingNewPin) return;
     setPin((prev) => prev.slice(0, -1));
     setError(false);
     setErrorMessage('');
     setBiometricStatus(null);
   };
 
-  // Real WebAuthn platform biometric authentication (Windows Hello / Android Fingerprint / Touch ID)
+  const handleConfirmNewVault = () => {
+    if (!pendingNewPin) return;
+    const newVault = registerVault(pendingNewPin, newVaultName);
+    setPendingNewPin(null);
+    setPin('');
+    onUnlock(newVault.id, newVault.userName);
+  };
+
+  const handleCancelNewVault = () => {
+    setPendingNewPin(null);
+    setPin('');
+    setError(true);
+    setErrorMessage('PIN entry cancelled. Try again.');
+    setTimeout(() => {
+      setError(false);
+      setErrorMessage('');
+    }, 2500);
+  };
+
+  // Real WebAuthn platform biometric authentication
   const handleBiometric = async () => {
-    if (isAuthenticating) return;
+    if (isAuthenticating || pendingNewPin) return;
 
     setIsAuthenticating(true);
     setError(false);
@@ -71,7 +104,6 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
       const savedCredId = localStorage.getItem('finance_tracker_biometric_id');
 
       if (savedCredId) {
-        // Authenticate existing credential
         const rawId = Uint8Array.from(atob(savedCredId), (c) => c.charCodeAt(0));
         const assertion = await navigator.credentials.get({
           publicKey: {
@@ -90,12 +122,12 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
         if (assertion) {
           setBiometricStatus('Verified! Unlocking...');
           setTimeout(() => {
-            onUnlock();
+            // Unlock owner vault by default for registered biometrics
+            onUnlock('vault_0000', 'Owner');
           }, 300);
           return;
         }
       } else {
-        // First-time biometric registration with platform authenticator
         const userId = new Uint8Array(16);
         window.crypto.getRandomValues(userId);
 
@@ -105,8 +137,8 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
             rp: { name: 'Finance Tracker' },
             user: {
               id: userId,
-              name: 'user@financetracker.local',
-              displayName: userName || 'Finance Tracker User',
+              name: 'owner@financetracker.local',
+              displayName: 'Finance Tracker Owner',
             },
             pubKeyCredParams: [
               { alg: -7, type: 'public-key' },  // ES256
@@ -124,9 +156,9 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
         if (credential && credential.rawId) {
           const credIdBase64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
           localStorage.setItem('finance_tracker_biometric_id', credIdBase64);
-          setBiometricStatus('Verified! Unlocking...');
+          setBiometricStatus('Fingerprint enrolled! Unlocking...');
           setTimeout(() => {
-            onUnlock();
+            onUnlock('vault_0000', 'Owner');
           }, 300);
           return;
         }
@@ -135,10 +167,9 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
       throw new Error('Biometric verification cancelled.');
     } catch (err: any) {
       console.warn('Biometric error:', err);
-      // Strictly DO NOT open if cancelled or failed
       setError(true);
       if (err?.name === 'NotAllowedError') {
-        setErrorMessage('Biometric scan cancelled. Please enter PIN.');
+        setErrorMessage('Biometric scan cancelled. Please enter your PIN.');
       } else if (err?.message) {
         setErrorMessage(err.message);
       } else {
@@ -150,33 +181,38 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (pendingNewPin) return;
       if (/^[0-9]$/.test(e.key)) {
         handleDigit(e.key);
       } else if (e.key === 'Backspace') {
         handleDelete();
       }
-    };
+    }
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pin, correctPin]);
+  }, [pin, pendingNewPin]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-950 flex flex-col items-center justify-between p-8">
+    <div className="fixed inset-0 z-50 bg-[#F8FAF8] text-slate-800 flex flex-col items-center justify-between p-6 select-none overflow-y-auto">
       {/* Top Brand Header */}
-      <div className="flex flex-col items-center pt-8">
-        <div className="w-14 h-14 rounded-2xl bg-navy-800 border border-gold-500/40 flex items-center justify-center mb-3 shadow-gold">
-          <Crown className="w-7 h-7 text-gold-400" />
+      <div className="flex flex-col items-center pt-4 sm:pt-6">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-700 via-emerald-600 to-teal-500 border border-emerald-400/40 flex items-center justify-center mb-3 shadow-lg shadow-emerald-700/20">
+          <Crown className="w-8 h-8 text-white" />
         </div>
-        <h2 className="text-xl font-bold font-display text-pearl-50 tracking-wide">Finance Tracker</h2>
-        <p className="text-xs text-pearl-400 mt-1">Welcome back, {userName}</p>
+        <h2 className="text-2xl font-bold font-display text-emerald-950 tracking-tight">Finance Tracker</h2>
+        <div className="flex items-center gap-1.5 mt-1.5 px-3 py-1 rounded-full bg-emerald-100/70 border border-emerald-300/60 text-emerald-800 text-xs font-semibold">
+          <Shield className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Private Multi-Vault System</span>
+        </div>
       </div>
 
-      {/* Center PIN Indicator */}
-      <div className="flex flex-col items-center my-auto">
-        <div className="flex items-center gap-2 mb-4 text-xs font-semibold tracking-wider text-pearl-400 uppercase">
-          <Lock className="w-3.5 h-3.5 text-gold-400" /> Enter PIN
+      {/* Center PIN Section */}
+      <div className="flex flex-col items-center my-auto py-4 w-full max-w-sm">
+        <div className="flex items-center gap-2 mb-4 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+          <KeyRound className="w-3.5 h-3.5 text-emerald-600" /> Enter 4-Digit Lock PIN
         </div>
 
         {/* 4 dots */}
@@ -186,11 +222,11 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
             return (
               <div
                 key={idx}
-                className={`w-4 h-4 rounded-full transition-all duration-200 ${
+                className={`w-5 h-5 rounded-full transition-all duration-200 ${
                   isFilled
-                    ? 'bg-gold-400 scale-110 shadow-gold'
-                    : 'bg-navy-800 border border-white/20'
-                } ${error ? 'border-crimson-500 bg-crimson-500/40' : ''}`}
+                    ? 'bg-emerald-600 scale-110 shadow-md shadow-emerald-600/30 ring-2 ring-emerald-200'
+                    : 'bg-white border-2 border-slate-300'
+                } ${error ? 'border-red-500 bg-red-100' : ''}`}
               />
             );
           })}
@@ -198,29 +234,34 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
 
         {/* Feedback messages */}
         {error && (
-          <div className="mt-3 px-3 py-1.5 rounded-xl bg-crimson-500/10 border border-crimson-500/20 text-xs text-crimson-400 font-medium flex items-center gap-1.5 text-center max-w-xs">
-            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            <span>{errorMessage || 'Incorrect PIN'}</span>
+          <div className="mt-4 px-3.5 py-2 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 font-medium flex items-center gap-2 text-center max-w-xs shadow-sm">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+            <span>{errorMessage}</span>
           </div>
         )}
 
         {biometricStatus && (
-          <div className="mt-3 px-3 py-1.5 rounded-xl bg-gold-500/10 border border-gold-500/30 text-xs text-gold-300 font-medium flex items-center gap-1.5 text-center max-w-xs animate-pulse">
-            <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-gold-400" />
+          <div className="mt-4 px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 font-medium flex items-center gap-2 text-center max-w-xs shadow-sm">
+            <Loader2 className="w-4 h-4 shrink-0 animate-spin text-emerald-600" />
             <span>{biometricStatus}</span>
           </div>
         )}
+
+        {/* Informative Hint */}
+        <p className="text-[12px] text-slate-400 mt-4 text-center">
+          Default Owner PIN is <strong className="text-emerald-700 font-bold">0000</strong>. Or enter any 4 digits to open/create your private vault.
+        </p>
       </div>
 
       {/* Keypad */}
-      <div className="w-full max-w-xs space-y-4 pb-6">
-        <div className="grid grid-cols-3 gap-3">
+      <div className="w-full max-w-xs pb-4">
+        <div className="grid grid-cols-3 gap-3.5">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
             <button
               key={num}
               onClick={() => handleDigit(num.toString())}
-              disabled={isAuthenticating}
-              className="w-16 h-16 mx-auto rounded-full bg-navy-900/80 hover:bg-white/10 active:bg-gold-500/20 border border-white/10 text-xl font-medium text-pearl-100 flex items-center justify-center transition-all shadow-md active:scale-95 disabled:opacity-50"
+              disabled={isAuthenticating || Boolean(pendingNewPin)}
+              className="w-16 h-16 mx-auto rounded-2xl bg-white hover:bg-emerald-50 active:bg-emerald-100 border border-slate-200 hover:border-emerald-300 text-2xl font-bold font-display text-slate-800 flex items-center justify-center transition-all shadow-sm active:scale-95 disabled:opacity-50"
             >
               {num}
             </button>
@@ -229,26 +270,26 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
           {/* Biometric trigger */}
           <button
             onClick={handleBiometric}
-            disabled={isAuthenticating}
-            className={`w-16 h-16 mx-auto rounded-full bg-navy-900/40 hover:bg-white/10 border text-gold-400 flex items-center justify-center transition-all active:scale-95 ${
+            disabled={isAuthenticating || Boolean(pendingNewPin)}
+            className={`w-16 h-16 mx-auto rounded-2xl bg-white hover:bg-emerald-50 border text-emerald-700 flex items-center justify-center transition-all active:scale-95 shadow-sm ${
               isAuthenticating
-                ? 'border-gold-500/60 bg-gold-500/20 animate-pulse text-gold-300 shadow-gold'
-                : 'border-white/10'
+                ? 'border-emerald-500 bg-emerald-100/50 animate-pulse ring-2 ring-emerald-300'
+                : 'border-slate-200 hover:border-emerald-300'
             }`}
             title="Fingerprint / Biometric Unlock"
           >
             {isAuthenticating ? (
-              <Loader2 className="w-6 h-6 animate-spin text-gold-400" />
+              <Loader2 className="w-7 h-7 animate-spin text-emerald-600" />
             ) : (
-              <Fingerprint className="w-6 h-6" />
+              <Fingerprint className="w-7 h-7" />
             )}
           </button>
 
           {/* Zero */}
           <button
             onClick={() => handleDigit('0')}
-            disabled={isAuthenticating}
-            className="w-16 h-16 mx-auto rounded-full bg-navy-900/80 hover:bg-white/10 active:bg-gold-500/20 border border-white/10 text-xl font-medium text-pearl-100 flex items-center justify-center transition-all shadow-md active:scale-95 disabled:opacity-50"
+            disabled={isAuthenticating || Boolean(pendingNewPin)}
+            className="w-16 h-16 mx-auto rounded-2xl bg-white hover:bg-emerald-50 active:bg-emerald-100 border border-slate-200 hover:border-emerald-300 text-2xl font-bold font-display text-slate-800 flex items-center justify-center transition-all shadow-sm active:scale-95 disabled:opacity-50"
           >
             0
           </button>
@@ -256,27 +297,72 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
           {/* Backspace */}
           <button
             onClick={handleDelete}
-            disabled={isAuthenticating}
-            className="w-16 h-16 mx-auto rounded-full bg-navy-900/40 hover:bg-white/10 border border-white/10 text-pearl-300 flex items-center justify-center transition-all active:scale-95 disabled:opacity-50"
+            disabled={isAuthenticating || Boolean(pendingNewPin)}
+            className="w-16 h-16 mx-auto rounded-2xl bg-white hover:bg-slate-100 active:bg-slate-200 border border-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-all active:scale-95 shadow-sm disabled:opacity-50"
             title="Delete"
           >
-            <Delete className="w-5 h-5" />
+            <Delete className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Switch User / Setup New Profile */}
-        {onSwitchUser && (
-          <div className="pt-2 text-center">
-            <button
-              type="button"
-              onClick={onSwitchUser}
-              className="text-xs text-pearl-400 hover:text-gold-300 transition-colors underline underline-offset-4"
-            >
-              Switch Account / Set Up New Vault
-            </button>
-          </div>
-        )}
+        {/* Registered Vault count indicator */}
+        <div className="pt-4 text-center">
+          <span className="text-[11px] text-slate-400">
+            {vaultsList.length} secure vault{vaultsList.length === 1 ? '' : 's'} registered on this device
+          </span>
+        </div>
       </div>
+
+      {/* New Vault Setup Dialog when an unrecognised PIN is entered */}
+      {pendingNewPin && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm border border-emerald-100 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <Plus className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 font-display">Create New Vault?</h3>
+                <p className="text-xs text-slate-500">PIN: <strong className="text-emerald-700 tracking-widest">{pendingNewPin}</strong></p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              No vault is currently linked to this PIN. Would you like to create a new, completely isolated personal vault for this PIN?
+            </p>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">
+                Vault / User Name (Optional)
+              </label>
+              <input
+                type="text"
+                value={newVaultName}
+                onChange={(e) => setNewVaultName(e.target.value)}
+                placeholder="e.g. My Vault, Personal, Work"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm text-slate-900 font-medium outline-none transition-all"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={handleCancelNewVault}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmNewVault}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Check className="w-4 h-4" /> Create & Unlock
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -146,7 +146,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
       {/* Floating Bottom Nav Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none flex justify-center pb-3 px-4">
-        <div className="pointer-events-auto w-full max-w-md bg-navy-900/95 backdrop-blur-xl border border-white/15 rounded-3xl shadow-luxury py-2 px-3 flex items-center justify-around">
+        <div className="pointer-events-auto w-full max-w-md bg-white/95 backdrop-blur-xl border border-emerald-200/60 rounded-3xl shadow-lg py-2 px-3 flex items-center justify-around">
           {navItems.map((item) => {
             if (item.isFab) {
               return (
@@ -154,7 +154,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                   <button
                     onClick={() => setIsFabOpen(!isFabOpen)}
                     className={clsx(
-                      'w-13 h-13 rounded-full bg-gradient-to-tr from-gold-600 via-gold-400 to-gold-300 text-navy-950 p-3 shadow-gold hover:scale-105 active:scale-95 transition-all flex items-center justify-center border-2 border-navy-900',
+                      'w-13 h-13 rounded-full bg-gradient-to-tr from-emerald-700 via-emerald-600 to-teal-500 text-white p-3.5 shadow-gold hover:scale-105 active:scale-95 transition-all flex items-center justify-center border-4 border-[#F8FAF8]',
                       isFabOpen && 'rotate-45'
                     )}
                     aria-label="Quick Action"
@@ -174,13 +174,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                 onClick={() => onNavigate(item.id)}
                 className={clsx(
                   'flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all relative',
-                  isActive ? 'text-gold-400' : 'text-pearl-400 hover:text-pearl-200'
+                  isActive ? 'text-emerald-700 font-semibold' : 'text-slate-400 hover:text-emerald-800'
                 )}
               >
-                <Icon className={clsx('w-5 h-5 transition-transform', isActive && 'scale-110')} />
+                <Icon className={clsx('w-5 h-5 transition-transform', isActive && 'scale-110 text-emerald-600')} />
                 <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
                 {isActive && (
-                  <span className="w-1 h-1 rounded-full bg-gold-400 absolute -bottom-0.5" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 absolute -bottom-0.5" />
                 )}
               </button>
             );
