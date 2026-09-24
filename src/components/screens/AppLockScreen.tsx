@@ -199,8 +199,8 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
     <div className="fixed inset-0 z-50 bg-[#F8FAF8] text-slate-800 flex flex-col items-center justify-between p-6 select-none overflow-y-auto">
       {/* Top Brand Header */}
       <div className="flex flex-col items-center pt-4 sm:pt-6">
-        <div className="w-20 h-20 rounded-2xl overflow-hidden mb-3 shadow-lg shadow-emerald-700/15 border border-emerald-200/80 bg-white p-1">
-          <img src="/logo.png" alt="Finance Tracker Logo" className="w-full h-full object-contain rounded-xl" />
+        <div className="w-20 h-20 mb-2 flex items-center justify-center filter drop-shadow-md">
+          <img src="/logo.png" alt="Finance Tracker Logo" className="w-full h-full object-contain" />
         </div>
         <h2 className="text-2xl font-bold font-display text-emerald-950 tracking-tight">Finance Tracker</h2>
         <div className="flex items-center gap-1.5 mt-1.5 px-3 py-1 rounded-full bg-emerald-100/70 border border-emerald-300/60 text-emerald-800 text-xs font-semibold">
