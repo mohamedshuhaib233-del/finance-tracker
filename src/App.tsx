@@ -665,6 +665,7 @@ export function App() {
             onUpdateSettings={handleUpdateSettings}
             onNavigate={setActiveScreen}
             onLockApp={() => setIsAppLocked(true)}
+            currencySymbol={currencySymbol}
           />
         );
     }

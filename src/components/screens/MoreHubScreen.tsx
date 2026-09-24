@@ -23,14 +23,23 @@ import {
   Trash2,
   Sparkles,
   KeyRound,
+  MessageSquare,
+  Send,
+  Phone,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from 'lucide-react';
 import { UserSettings } from '../../types';
+import { SmsReminderModal } from './SmsReminderModal';
+import { SmsService } from '../../services/smsService';
+import { getActiveVaultId } from '../../db/database';
 
 interface MoreHubScreenProps {
   userSettings: UserSettings | null;
   onUpdateSettings: (newSettings: Partial<UserSettings>) => Promise<void>;
   onNavigate: (screen: string) => void;
   onLockApp: () => void;
+  currencySymbol?: string;
 }
 
 export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
@@ -38,18 +47,28 @@ export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
   onUpdateSettings,
   onNavigate,
   onLockApp,
+  currencySymbol = '₹',
 }) => {
   const [userName, setUserName] = useState(userSettings?.userName || 'User');
   const [isEditingName, setIsEditingName] = useState(false);
   const [isSavingName, setIsSavingName] = useState(false);
   const [nameSavedSuccess, setNameSavedSuccess] = useState(false);
+  const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Quick summary of pending dues
+  const [pendingRemindersCount, setPendingRemindersCount] = useState(0);
 
   useEffect(() => {
     if (userSettings?.userName) {
       setUserName(userSettings.userName);
     }
   }, [userSettings?.userName]);
+
+  useEffect(() => {
+    const list = SmsService.getReminders(getActiveVaultId());
+    setPendingRemindersCount(list.filter((r) => r.status === 'pending').length);
+  }, [isSmsModalOpen]);
 
   const handleSaveName = async () => {
     if (!userName.trim()) return;
@@ -69,7 +88,6 @@ export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        // High quality resize to max 320x320 for optimal performance in offline storage
         const canvas = document.createElement('canvas');
         const maxDim = 320;
         let width = img.width;
@@ -110,9 +128,10 @@ export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
 
   const hubModules = [
     {
-      group: 'Money Tracking',
+      group: 'Money Tracking & SMS Reminders',
       items: [
-        { id: 'accounts', label: 'Accounts', desc: 'Bank, cash, credit card & UPI wallets', icon: Building2, color: 'text-emerald-700 bg-emerald-50' },
+        { id: 'sms_reminders', label: 'SMS Payment Reminders', desc: 'Send SMS for money to receive or pay', icon: MessageSquare, color: 'text-emerald-700 bg-emerald-50' },
+        { id: 'accounts', label: 'Accounts', desc: 'Bank, cash, credit card & UPI wallets', icon: Building2, color: 'text-blue-700 bg-blue-50' },
         { id: 'budgets', label: 'Budgets', desc: 'Monthly spending limits', icon: PieChart, color: 'text-amber-700 bg-amber-50' },
         { id: 'goals', label: 'Savings Goals', desc: 'Target savings tracking', icon: Target, color: 'text-teal-700 bg-teal-50' },
         { id: 'reports', label: 'Reports & Analytics', desc: 'Cash flow, spending trends & net worth', icon: BarChart3, color: 'text-purple-700 bg-purple-50' },
@@ -278,6 +297,42 @@ export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
         </div>
       </div>
 
+      {/* PROFILE SMS SECTION: Direct SMS Payment Reminders Card */}
+      <div className="bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-800 text-white rounded-3xl p-5 sm:p-6 border border-emerald-600/30 shadow-md relative overflow-hidden">
+        {/* Subtle decorative glow */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full filter blur-xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center text-white">
+                <MessageSquare className="w-4 h-4" />
+              </span>
+              <h3 className="text-base sm:text-lg font-bold font-display text-white">
+                SMS Payment Reminders
+              </h3>
+              {pendingRemindersCount > 0 && (
+                <span className="text-[11px] bg-emerald-400/20 text-emerald-200 border border-emerald-300/30 px-2 py-0.5 rounded-full font-bold">
+                  {pendingRemindersCount} Pending
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-emerald-100 max-w-md leading-relaxed">
+              ആർക്കെങ്കിലും പണം നൽകാനുണ്ടെങ്കിലോ ആരെങ്കിലും പണം തരാനുണ്ടെങ്കിലോ ഫോൺ നമ്പർ നൽകി നേരിട്ട് സാധാരണ SMS അയക്കുക.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsSmsModalOpen(true)}
+            className="px-4 py-2.5 rounded-xl bg-white text-emerald-800 font-bold text-xs sm:text-sm hover:bg-emerald-50 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2 shrink-0"
+          >
+            <Send className="w-4 h-4 text-emerald-700" />
+            <span>SMS അയക്കുക / കണക്കുകൾ</span>
+          </button>
+        </div>
+      </div>
+
       {/* Module Groups (Hub & Tools) */}
       <div className="space-y-4">
         {hubModules.map((grp) => (
@@ -293,7 +348,13 @@ export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
                 return (
                   <div
                     key={item.id}
-                    onClick={() => onNavigate(item.id)}
+                    onClick={() => {
+                      if (item.id === 'sms_reminders') {
+                        setIsSmsModalOpen(true);
+                      } else {
+                        onNavigate(item.id);
+                      }
+                    }}
                     className="p-3.5 flex items-center justify-between hover:bg-emerald-50/40 cursor-pointer transition-colors"
                   >
                     <div className="flex items-center gap-3">
@@ -326,6 +387,14 @@ export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
           <Lock className="w-4 h-4 text-red-500" /> Lock Vault Now
         </button>
       </div>
+
+      {/* Dedicated SMS Reminder Modal */}
+      <SmsReminderModal
+        isOpen={isSmsModalOpen}
+        onClose={() => setIsSmsModalOpen(false)}
+        senderName={userName}
+        currencySymbol={currencySymbol}
+      />
     </div>
   );
 };
