@@ -28,10 +28,13 @@ import {
   Phone,
   ArrowDownLeft,
   ArrowUpRight,
+  CalendarDays,
 } from 'lucide-react';
 import { UserSettings } from '../../types';
 import { SmsReminderModal } from './SmsReminderModal';
 import { SmsService } from '../../services/smsService';
+import { FundScheduleCalendarModal } from './FundScheduleCalendarModal';
+import { FundScheduleService } from '../../services/fundScheduleService';
 import { getActiveVaultId } from '../../db/database';
 
 interface MoreHubScreenProps {
@@ -54,10 +57,13 @@ export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
   const [isSavingName, setIsSavingName] = useState(false);
   const [nameSavedSuccess, setNameSavedSuccess] = useState(false);
   const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
+  const [isFundCalendarOpen, setIsFundCalendarOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Quick summary of pending dues
+  // Quick summary of pending dues & scheduled fund promises
   const [pendingRemindersCount, setPendingRemindersCount] = useState(0);
+  const [dueTodayPromisesCount, setDueTodayPromisesCount] = useState(0);
+  const [pendingPromisesCount, setPendingPromisesCount] = useState(0);
 
   useEffect(() => {
     if (userSettings?.userName) {
@@ -65,10 +71,19 @@ export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
     }
   }, [userSettings?.userName]);
 
-  useEffect(() => {
+  const refreshCounts = () => {
     const list = SmsService.getReminders(getActiveVaultId());
     setPendingRemindersCount(list.filter((r) => r.status === 'pending').length);
-  }, [isSmsModalOpen]);
+
+    const promises = FundScheduleService.getPromises(getActiveVaultId());
+    const dueToday = FundScheduleService.getDuePromisesToday(getActiveVaultId());
+    setDueTodayPromisesCount(dueToday.length);
+    setPendingPromisesCount(promises.filter((p) => p.status === 'pending').length);
+  };
+
+  useEffect(() => {
+    refreshCounts();
+  }, [isSmsModalOpen, isFundCalendarOpen]);
 
   const handleSaveName = async () => {
     if (!userName.trim()) return;
@@ -136,6 +151,18 @@ export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
           desc: 'Send SMS for money to receive or pay',
           icon: MessageSquare,
           color: 'text-emerald-700 bg-emerald-50',
+        },
+        {
+          id: 'fund_calendar_reminders',
+          label:
+            dueTodayPromisesCount > 0
+              ? `Promised Fund Date Reminders (${dueTodayPromisesCount} Due Today)`
+              : pendingPromisesCount > 0
+              ? `Promised Fund Date Reminders (${pendingPromisesCount})`
+              : 'Promised Fund Date Reminders',
+          desc: 'Calendar tracking & automated SMS/WhatsApp for promised dates',
+          icon: CalendarDays,
+          color: 'text-teal-700 bg-teal-50',
         },
         { id: 'accounts', label: 'Accounts', desc: 'Bank, cash, credit card & UPI wallets', icon: Building2, color: 'text-blue-700 bg-blue-50' },
         { id: 'budgets', label: 'Budgets', desc: 'Monthly spending limits', icon: PieChart, color: 'text-amber-700 bg-amber-50' },
@@ -323,6 +350,8 @@ export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
                     onClick={() => {
                       if (item.id === 'sms_reminders') {
                         setIsSmsModalOpen(true);
+                      } else if (item.id === 'fund_calendar_reminders') {
+                        setIsFundCalendarOpen(true);
                       } else {
                         onNavigate(item.id);
                       }
@@ -364,6 +393,17 @@ export const MoreHubScreen: React.FC<MoreHubScreenProps> = ({
       <SmsReminderModal
         isOpen={isSmsModalOpen}
         onClose={() => setIsSmsModalOpen(false)}
+        senderName={userName}
+        currencySymbol={currencySymbol}
+      />
+
+      {/* Dedicated Promised Fund Calendar & Automated Reminder Modal */}
+      <FundScheduleCalendarModal
+        isOpen={isFundCalendarOpen}
+        onClose={() => {
+          setIsFundCalendarOpen(false);
+          refreshCounts();
+        }}
         senderName={userName}
         currencySymbol={currencySymbol}
       />
