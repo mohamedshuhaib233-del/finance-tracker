@@ -247,10 +247,7 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
           </div>
         )}
 
-        {/* Informative Hint */}
-        <p className="text-[12px] text-slate-400 mt-4 text-center">
-          Default Owner PIN is <strong className="text-emerald-700 font-bold">0000</strong>. Or enter any 4 digits to open/create your private vault.
-        </p>
+
       </div>
 
       {/* Keypad */}
