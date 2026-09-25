@@ -45,16 +45,6 @@ export function getRegisteredVaults(): VaultMeta[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Ensure Owner's 0000 vault is always present
-        if (!parsed.some((v: VaultMeta) => v.pin === '0000')) {
-          parsed.unshift({
-            id: 'vault_0000',
-            pin: '0000',
-            userName: 'Owner',
-            createdAt: new Date().toISOString(),
-          });
-          localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(parsed));
-        }
         return parsed;
       }
     }
@@ -62,22 +52,25 @@ export function getRegisteredVaults(): VaultMeta[] {
     console.error('Error reading vaults from localStorage:', e);
   }
 
-  // Default initial vault for Owner (PIN: 0000)
-  const initialVaults: VaultMeta[] = [
-    {
-      id: 'vault_0000',
-      pin: '0000',
-      userName: 'Owner',
-      createdAt: new Date().toISOString(),
-    },
-  ];
-  localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(initialVaults));
-  return initialVaults;
+  // Return empty list on fresh browsers so new visitors can set up their own personal PIN
+  return [];
+}
+
+export function hasRegisteredVaults(): boolean {
+  return getRegisteredVaults().length > 0;
 }
 
 export function findVaultByPin(pin: string): VaultMeta | undefined {
   const vaults = getRegisteredVaults();
-  return vaults.find((v) => v.pin === pin);
+  const matched = vaults.find((v) => v.pin === pin);
+  if (matched) return matched;
+
+  // If entering owner's PIN 0000, seamlessly register or link owner vault
+  if (pin === '0000') {
+    return registerVault('0000', 'Owner');
+  }
+
+  return undefined;
 }
 
 export function registerVault(pin: string, userName?: string): VaultMeta {
